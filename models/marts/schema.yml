@@ -105,10 +105,15 @@ models:
           - unique
       - name: brand_id
         description: Brand identifier.
+      
       - name: platform
         description: Platform the comment originated from (youtube, instagram, facebook).
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['youtube', 'instagram', 'facebook']
+    
       - name: comment_id
         description: Unique comment identifier from the source platform.
         tests:
@@ -135,6 +140,10 @@ models:
         tests:
           - not_null
           - unique
+          - relationships:
+              to: ref('dim_generated_videos')
+              field: generated_video_id
+
       - name: brand_id
         description: Brand identifier.
         tests:
