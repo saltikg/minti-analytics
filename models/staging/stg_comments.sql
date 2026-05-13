@@ -54,14 +54,15 @@ cleaned as (
 
         nullif(trim(comment_url), '') as comment_url,
 
-        try_cast(published_at as timestamp) as published_at,
-        try_cast(like_count as bigint) as like_count,
-        try_cast(moderation_flagged as boolean) as moderation_flagged,
+        published_at::timestamp as published_at,
+        like_count::bigint as like_count,
+        moderation_flagged::boolean as moderation_flagged,
         nullif(trim(moderation_reason), '') as moderation_reason,
-        try_cast(moderation_checked_at as timestamp) as moderation_checked_at,
-        try_cast(created_at as timestamp) as created_at,
-        try_cast(updated_at as timestamp) as updated_at
+        moderation_checked_at::timestamp as moderation_checked_at,
+        created_at::timestamp as created_at,
+        updated_at::timestamp as updated_at
 
+        
     from src
     where nullif(trim(comment_id), '') is not null
 
