@@ -2,57 +2,172 @@ version: 2
 
 models:
   - name: fct_video_daily_metrics
+    description: Daily performance metrics per video, per platform. One row per video per snapshot date.
     columns:
       - name: snapshot_date
+        description: Date of the performance snapshot.
         tests:
           - not_null
       - name: brand_id
-        tests:
-          - not_null
-      - name: video_id
+        description: Brand identifier.
         tests:
           - not_null
       - name: channel_type
+        description: Platform channel type (youtube, instagram, facebook).
         tests:
           - not_null
+      - name: video_id
+        description: Platform-specific video identifier.
+        tests:
+          - not_null
+      - name: impressions
+        description: Total impressions for the video on this date.
+      - name: views
+        description: Total views for the video on this date.
+      - name: comments
+        description: Total comments for the video on this date.
+      - name: likes
+        description: Total likes for the video on this date.
+      - name: shares
+        description: Total shares for the video on this date.
+      - name: reach
+        description: Total unique accounts reached on this date.
+      - name: saved
+        description: Total saves for the video on this date.
+      - name: stats_source
+        description: Source system that provided the metrics.
+      - name: primary_exposure
+        description: Primary exposure metric for the platform.
+      - name: engagement_count
+        description: Total engagement actions (likes + comments + shares).
+      - name: engagement_rate
+        description: Engagement rate calculated as engagement_count divided by impressions or views.
+
   - name: fct_video_daily_deltas
-    description: Daily delta metrics by video and snapshot date.
-   
+    description: Day-over-day metric changes per video and snapshot date.
     columns:
       - name: snapshot_date
         description: Snapshot date.
         tests:
           - not_null
-
       - name: channel_type
         description: Channel type such as youtube or instagram.
         tests:
           - not_null
-
       - name: brand_id
         description: Brand identifier.
         tests:
           - not_null
-
       - name: video_id
         description: Platform video identifier.
         tests:
           - not_null
-
       - name: views
         description: Daily delta views.
-
       - name: likes
         description: Daily delta likes.
-
       - name: comments
         description: Daily delta comments.
-
       - name: shares
         description: Daily delta shares.
-
       - name: reach
         description: Daily delta reach.
-
       - name: saved
         description: Daily delta saved.
+
+  - name: fct_channel_daily_growth
+    description: Daily subscriber growth metrics per channel and platform. One row per channel per snapshot date.
+    columns:
+      - name: snapshot_date
+        description: Date of the subscriber snapshot.
+        tests:
+          - not_null
+      - name: brand_id
+        description: Brand identifier.
+        tests:
+          - not_null
+      - name: channel_type
+        description: Platform channel type (youtube, instagram, facebook).
+        tests:
+          - not_null
+      - name: subscriber_count
+        description: Total subscriber or follower count on this date.
+      - name: subscriber_delta
+        description: Day-over-day change in subscriber count.
+
+  - name: fct_social_comments
+    description: Unified comment feed across YouTube, Instagram, and Facebook platforms.
+    columns:
+      - name: comment_sk
+        description: Surrogate key for the comment record.
+        tests:
+          - not_null
+          - unique
+      - name: brand_id
+        description: Brand identifier.
+      - name: platform
+        description: Platform the comment originated from (youtube, instagram, facebook).
+        tests:
+          - not_null
+      - name: comment_id
+        description: Unique comment identifier from the source platform.
+        tests:
+          - not_null
+      - name: comment_video_id
+        description: Video identifier the comment belongs to.
+      - name: comment_text
+        description: Raw comment text content.
+      - name: comment_published_at
+        description: Timestamp when the comment was published.
+      - name: is_reply
+        description: Boolean flag indicating if the comment is a reply.
+      - name: like_count
+        description: Number of likes on the comment.
+      - name: moderation_flagged
+        description: Boolean flag indicating if the comment was flagged for moderation.
+
+
+  - name: dim_generated_videos
+    description: Dimension table for AI-generated videos. Contains metadata, publish status, and platform identifiers for each generated video.
+    columns:
+      - name: generated_video_id
+        description: Unique identifier for the generated video.
+        tests:
+          - not_null
+          - unique
+      - name: brand_id
+        description: Brand identifier.
+        tests:
+          - not_null
+      - name: source_video_id
+        description: Identifier of the original source video used for generation.
+      - name: publish_status
+        description: Current publish status of the generated video (e.g. published, draft, failed).
+      - name: primary_publish_platform
+        description: Primary platform the video was published to (youtube, instagram, facebook, tiktok).
+      - name: youtube_video_id
+        description: YouTube video identifier after publishing.
+      - name: instagram_media_id
+        description: Instagram media identifier after publishing.
+      - name: facebook_video_id
+        description: Facebook video identifier after publishing.
+      - name: tiktok_video_id
+        description: TikTok video identifier after publishing.
+      - name: planned_publish_at
+        description: Planned publish timestamp.
+      - name: published_at
+        description: Actual publish timestamp.
+      - name: youtube_published_at
+        description: Timestamp when published to YouTube.
+      - name: instagram_published_at
+        description: Timestamp when published to Instagram.
+      - name: facebook_published_at
+        description: Timestamp when published to Facebook.
+      - name: tiktok_published_at
+        description: Timestamp when published to TikTok.
+      - name: generated_title
+        description: AI-generated title for the video.
+      - name: created_at
+        description: Record creation timestamp.
+      - name: updated_at
+        description: Record last updated timestamp.
