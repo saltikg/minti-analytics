@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: fct_video_daily_metrics
+    columns:
+      - name: snapshot_date
+        tests:
+          - not_null
+      - name: brand_id
+        tests:
+          - not_null
+      - name: video_id
+        tests:
+          - not_null
+      - name: channel_type
+        tests:
+          - not_null
+  - name: fct_video_daily_deltas
+    description: Daily delta metrics by video and snapshot date.
+   
+    columns:
+      - name: snapshot_date
+        description: Snapshot date.
+        tests:
+          - not_null
+
+      - name: channel_type
+        description: Channel type such as youtube or instagram.
+        tests:
+          - not_null
+
+      - name: brand_id
+        description: Brand identifier.
+        tests:
+          - not_null
+
+      - name: video_id
+        description: Platform video identifier.
+        tests:
+          - not_null
+
+      - name: views
+        description: Daily delta views.
+
+      - name: likes
+        description: Daily delta likes.
+
+      - name: comments
+        description: Daily delta comments.
+
+      - name: shares
+        description: Daily delta shares.
+
+      - name: reach
+        description: Daily delta reach.
+
+      - name: saved
+        description: Daily delta saved.
