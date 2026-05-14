@@ -5,3 +5,4 @@ profiles.yml
 .env
 *.pyc
 __pycache__/
+*.code-workspace
