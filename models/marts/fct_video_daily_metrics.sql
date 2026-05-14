@@ -1,4 +1,8 @@
-{{ config(materialized='table') }}
+{{ config(
+    materialized='incremental',
+    unique_key=['snapshot_date', 'brand_id', 'channel_type', 'video_id'],
+    on_schema_change='sync_all_columns'
+) }}
 
 with source_data as (
 
@@ -16,6 +20,10 @@ with source_data as (
         saved,
         stats_source
     from {{ ref('stg_video_daily_snapshots') }}
+
+    {% if is_incremental() %}
+        where snapshot_date >= (select max(snapshot_date) from {{ this }})
+    {% endif %}
 
 ),
 
