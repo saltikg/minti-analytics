@@ -26,6 +26,13 @@ Instagram API ─┘                                    │
 
 ---
 
+## dbt Docs & Lineage
+
+Interactive documentation and lineage graph:
+**[saltikg.github.io/minti-analytics](https://saltikg.github.io/minti-analytics)**
+
+---
+
 ## Project Structure
 
 ```
@@ -33,6 +40,8 @@ models/
 ├── staging/          # Cleaned views on top of raw source tables
 ├── intermediate/     # Mid-layer transformations
 └── marts/            # Fact and dimension tables for analytics
+
+snapshots/            # SCD Type 2 snapshots for slowly changing dimensions
 ```
 
 ### Staging Models
@@ -45,18 +54,18 @@ models/
 | `stg_social_comment_cache` | Cross-platform comment cache (YouTube, Instagram, Facebook) |
 
 ### Mart Models
-| Model | Description |
-|-------|-------------|
-| `fct_video_daily_metrics` | Daily view, like, and comment counts per video |
-| `fct_video_daily_deltas` | Day-over-day metric changes per video |
-| `fct_channel_daily_growth` | Daily subscriber growth per channel |
-| `fct_social_comments` | Unified comment feed across platforms |
-| `dim_generated_videos` | Dimension table for AI-generated video metadata |
+| Model | Type | Description |
+|-------|------|-------------|
+| `fct_video_daily_metrics` | Incremental | Daily view, like, and comment counts per video |
+| `fct_video_daily_deltas` | Table | Day-over-day metric changes per video |
+| `fct_channel_daily_growth` | Table | Daily subscriber growth per channel |
+| `fct_social_comments` | Table | Unified comment feed across platforms |
+| `dim_generated_videos` | Table | Dimension table for AI-generated video metadata |
 
-### Intermediate Models
+### Snapshots
 | Model | Description |
 |-------|-------------|
-| `fct_generated_video_content` | Content-level aggregations for generated videos |
+| `snp_generated_videos` | SCD Type 2 snapshot tracking publish lifecycle (draft → scheduled → published) |
 
 ---
 
@@ -73,11 +82,20 @@ Raw tables live in the `main` schema of the `minti_studio` PostgreSQL database.
 
 ---
 
+## Data Quality
+
+20 automated data tests across all mart models:
+- `not_null` — critical columns are never null
+- `unique` — surrogate keys are unique
+- `accepted_values` — platform column only accepts `youtube`, `instagram`, `facebook`
+
+---
+
 ## Orchestration
 
 - **Runtime:** dbt Core on AWS EC2
-- **Schedule:** Cron job at 02:00 UTC daily
-- **Command:** `dbt build` (runs + tests all models)
+- **Schedule:** Cron job running hourly
+- **Command:** `dbt snapshot && dbt build` (snapshots first, then models + tests)
 
 ---
 
@@ -85,10 +103,11 @@ Raw tables live in the `main` schema of the `minti_studio` PostgreSQL database.
 
 ```bash
 dbt debug        # Test connection
+dbt snapshot     # Run SCD Type 2 snapshots
 dbt run          # Run all models
 dbt test         # Run all tests
 dbt build        # Run + test in one command
-dbt docs generate && dbt docs serve   # View lineage graph
+dbt docs generate && dbt docs serve   # View lineage graph locally
 ```
 
 ---
