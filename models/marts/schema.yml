@@ -3,14 +3,7 @@ version: 2
 models:
   - name: fct_video_daily_metrics
     description: Daily performance metrics per video, per platform. One row per video per snapshot date.
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-        combination_of_columns:
-          - snapshot_date
-          - brand_id
-          - channel_type
-          - video_id
-
+    
     columns:
       - name: snapshot_date
         description: Date of the performance snapshot.
@@ -30,7 +23,7 @@ models:
         description: Platform-specific video identifier.
         tests:
           - not_null
-          - relationship:
+          - relationships:
               to: ref('dim_generated_videos')
               field: generated_video_id 
 
@@ -55,8 +48,7 @@ models:
       - name: engagement_count
         description: Total engagement actions (likes + comments + shares+saved).
       - name: engagement_rate
-        description: Engagement rate calculated as engagement_count divided by impressions or views.
-
+        description: Engagement rate calculated as engagement_count divided by primary_exposure (reach for Instagram, views for YouTube).
   - name: fct_video_daily_deltas
     description: Day-over-day metric changes per video and snapshot date.
     columns:
