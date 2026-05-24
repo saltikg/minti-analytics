@@ -11,7 +11,7 @@ This project transforms raw ingestion data (YouTube API, Instagram API) into cle
 ```
 YouTube API ──┐
               ├──► Flask Ingestion App ──► PostgreSQL (main schema)
-Instagram API ─┘                                    │
+Instagram API─┘                                     │
                                                     ▼
                                           dbt (this project)
                                                     │
