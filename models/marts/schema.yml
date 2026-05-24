@@ -25,8 +25,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-            arguments:
-              values:['youtube','instagram','facebook']
+            values:['youtube','instagram','facebook']
       - name: video_id
         description: Platform-specific video identifier.
         tests:
