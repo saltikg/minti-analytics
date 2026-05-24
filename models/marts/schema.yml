@@ -126,8 +126,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: ['youtube', 'instagram', 'facebook']
+              values: ['youtube', 'instagram', 'facebook']
     
       - name: comment_id
         description: Unique comment identifier from the source platform.
