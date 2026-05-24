@@ -6,3 +6,5 @@ profiles.yml
 *.pyc
 __pycache__/
 *.code-workspace
+.DS_Store
+**/.DS_Store
