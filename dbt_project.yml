@@ -15,5 +15,10 @@ models:
   minti_dbt:
     staging:
       +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: marts
     marts:
       +materialized: table
+      +schema: marts

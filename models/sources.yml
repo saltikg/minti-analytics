@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: minti_raw
-    database: minti_studio
-    schema: main
+    database: "{{ 'minti_studio' if target.type == 'postgres' else 'MINTI_DEV' }}"
+    schema: "{{ 'main' if target.type == 'postgres' else 'MINTI_RAW' }}"
     tables:
       - name: shorts_video_daily_snapshots
         description: "Daily performance snapshots for each short video (date-level metrics)."
@@ -13,7 +13,6 @@ sources:
 
       - name: shorts_channel_subscriber_daily
         description: "Daily subscriber metrics at channel level for historical tracking."
-      
+
       - name: social_comment_cache
         description: "Centralized cache table of normalized comments across YouTube, Instagram, and Facebook."
-      

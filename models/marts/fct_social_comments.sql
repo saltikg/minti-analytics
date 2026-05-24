@@ -1,3 +1,4 @@
+
 with comments_src as (
     select
         platform,
@@ -13,14 +14,18 @@ with comments_src as (
         text as comment_text,
         status as comment_status,
         comment_url,
-        published_at::timestamp as comment_published_at,
+        -- published_at: dirty TEXT in source -> safe_cast_timestamp
+        {{ safe_cast_timestamp('published_at') }} as comment_published_at,
         like_count,
         moderation_flagged,
         moderation_reason,
-        moderation_checked_at::timestamp as moderation_checked_at,
-        updated_at::timestamp as comment_updated_at
+        -- moderation_checked_at: clean TIMESTAMP_NTZ -> cast_timestamp
+        {{ cast_timestamp('moderation_checked_at') }} as moderation_checked_at,
+        -- updated_at: clean TIMESTAMP_NTZ -> cast_timestamp
+        {{ cast_timestamp('updated_at') }} as comment_updated_at
     from {{ ref('stg_social_comment_cache') }}
 ),
+
 comments_dedup as (
     select *
     from (
@@ -34,6 +39,7 @@ comments_dedup as (
     ) t
     where rn = 1
 ),
+
 videos as (
     select *
     from (
@@ -45,11 +51,11 @@ videos as (
             instagram_media_id,
             facebook_video_id,
             publish_status,
-            planned_publish_at::timestamp as planned_publish_at,
-            published_at::timestamp as published_at,
+            {{ cast_timestamp('planned_publish_at') }} as planned_publish_at,
+            {{ cast_timestamp('published_at') }} as published_at,
             generated_title,
-            created_at::timestamp as video_created_at,
-            updated_at::timestamp as video_updated_at,
+            {{ cast_timestamp('created_at') }} as video_created_at,
+            {{ cast_timestamp('updated_at') }} as video_updated_at,
             row_number() over (
                 partition by id
                 order by updated_at desc nulls last, created_at desc nulls last
@@ -58,7 +64,9 @@ videos as (
     ) v
     where rn = 1
 ),
-mapped as (
+
+-- Cross-join comments with videos and rank candidate matches by priority
+candidate_matches as (
     select
         c.*,
         v.generated_video_id,
@@ -70,43 +78,59 @@ mapped as (
         v.publish_status,
         v.planned_publish_at,
         v.published_at as video_published_at,
-        v.generated_title
+        v.generated_title,
+        v.video_updated_at,
+        case
+            when c.platform = 'instagram'
+                 and c.comment_instagram_media_id is not null
+                 and v.instagram_media_id = c.comment_instagram_media_id then 1
+            when c.platform = 'youtube'
+                 and v.youtube_video_id = c.comment_video_id then 1
+            when c.platform = 'facebook'
+                 and v.facebook_video_id = c.comment_video_id then 1
+            else 2
+        end as match_priority,
+        row_number() over (
+            partition by c.platform, c.comment_id
+            order by
+                case
+                    when c.platform = 'instagram'
+                         and c.comment_instagram_media_id is not null
+                         and v.instagram_media_id = c.comment_instagram_media_id then 1
+                    when c.platform = 'youtube'
+                         and v.youtube_video_id = c.comment_video_id then 1
+                    when c.platform = 'facebook'
+                         and v.facebook_video_id = c.comment_video_id then 1
+                    else 2
+                end,
+                v.video_updated_at desc nulls last
+        ) as match_rank
     from comments_dedup c
-    left join lateral (
-        select v.*
-        from videos v
-        where
+    left join videos v
+        on (
             (c.platform = 'youtube' and v.youtube_video_id = c.comment_video_id)
-            or
-            (
+            or (
                 c.platform = 'instagram'
                 and (
                     (c.comment_instagram_media_id is not null and v.instagram_media_id = c.comment_instagram_media_id)
                     or v.source_video_id = c.comment_video_id
                 )
             )
-            or
-            (
+            or (
                 c.platform = 'facebook'
                 and (
                     (v.facebook_video_id is not null and v.facebook_video_id = c.comment_video_id)
                     or v.source_video_id = c.comment_video_id
                 )
             )
-        order by
-            case
-                when c.platform = 'instagram'
-                     and c.comment_instagram_media_id is not null
-                     and v.instagram_media_id = c.comment_instagram_media_id then 1
-                when c.platform = 'youtube'
-                     and v.youtube_video_id = c.comment_video_id then 1
-                when c.platform = 'facebook'
-                     and v.facebook_video_id = c.comment_video_id then 1
-                else 2
-            end,
-            v.video_updated_at desc nulls last
-        limit 1
-    ) v on true
+        )
+),
+
+-- Keep only the best-priority video match per comment
+mapped as (
+    select *
+    from candidate_matches
+    where match_rank = 1
 )
 
 select

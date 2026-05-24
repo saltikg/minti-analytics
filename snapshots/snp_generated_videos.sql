@@ -3,7 +3,7 @@
 {{
     config
     (
-        target_schema='analytics',
+        target_schema= 'analytics' if target.type == 'postgres' else 'SNAPSHOTS',
         unique_key='id',
         strategy='timestamp',
         updated_at='updated_at',
