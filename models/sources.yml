@@ -4,15 +4,21 @@ sources:
   - name: minti_raw
     database: "{{ 'minti_studio' if target.type == 'postgres' else 'MINTI_DEV' }}"
     schema: "{{ 'main' if target.type == 'postgres' else 'MINTI_RAW' }}"
+    loaded_at_field: effective_at
+    freshness:
+      warn_after: {count: 25, period: hour}
+      error_after: {count: 48, period: hour}
     tables:
       - name: shorts_video_daily_snapshots
         description: "Daily performance snapshots for each short video (date-level metrics)."
 
-      - name: shorts_generated_videos
-        description: "Generated short-video records with production/pipeline outputs and core metadata."
-
       - name: shorts_channel_subscriber_daily
         description: "Daily subscriber metrics at channel level for historical tracking."
 
+      - name: shorts_generated_videos
+        description: "Generated short-video records with production/pipeline outputs and core metadata."
+        freshness: null
+
       - name: social_comment_cache
         description: "Centralized cache table of normalized comments across YouTube, Instagram, and Facebook."
+        freshness: null
