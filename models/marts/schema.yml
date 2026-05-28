@@ -183,3 +183,91 @@ models:
         description: Record creation timestamp.
       - name: updated_at
         description: Record last updated timestamp.
+
+  - name: fct_video_performance_summary
+    description: >
+      One row per published YouTube video. Aggregates traffic source breakdown,
+      retention metrics, and subscriber gains across the video's full history.
+      Used for video performance analysis and content strategy dashboard.
+
+    columns:
+      - name: youtube_video_id
+        description: YouTube video identifier. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: generated_title
+        description: AI-generated title of the video.
+
+      - name: effective_publish_at
+        description: Publish timestamp (youtube_published_at coalesced with planned_publish_at).
+        tests:
+          - not_null
+
+      - name: brand_id
+        description: Brand identifier.
+        tests:
+          - not_null
+
+      - name: video_duration_sec
+        description: Video duration in seconds, derived from raw_plan_entry_json (end - start).
+
+      - name: total_views
+        description: Total YouTube views across all traffic sources and all dates.
+
+      - name: algorithm_views
+        description: Views from feed_algorithm sources (SHORTS, NOTIFICATION, YT_OTHER_PAGE, RELATED_VIDEO).
+
+      - name: search_views
+        description: Views from organic search (YT_SEARCH).
+
+      - name: external_views
+        description: Views from external URLs (EXT_URL).
+
+      - name: channel_views
+        description: Views from channel page (YT_CHANNEL).
+
+      - name: subscriber_views
+        description: Views from subscribers (SUBSCRIBER).
+
+      - name: other_views
+        description: Views from uncategorized sources (NO_LINK_OTHER, PLAYLIST, SOUND_PAGE, HASHTAGS).
+
+      - name: algorithm_pct
+        description: Percentage of total views from algorithm-driven sources.
+
+      - name: search_pct
+        description: Percentage of total views from organic search.
+
+      - name: subscriber_pct
+        description: Percentage of total views from subscribers.
+
+      - name: discovery_label
+        description: Video discovery classification based on traffic mix.
+        tests:
+          - accepted_values:
+              values: ['algorithm_driven', 'demand_driven', 'mixed']
+
+      - name: avg_retention_pct
+        description: >
+          Average percentage of the video watched per view across all days.
+          Values above 100 indicate looping behavior.
+
+      - name: avg_duration_sec
+        description: Average view duration in seconds across all days.
+
+      - name: total_subs_gained
+        description: Total subscribers gained attributed to this video.
+
+      - name: ever_looped
+        description: True if average_view_percentage exceeded 100 on any day (looping video).
+
+      - name: days_with_data
+        description: Number of days with retention data for this video.
+
+      - name: retention_tier
+        description: Retention quality tier based on avg_retention_pct.
+        tests:
+          - accepted_values:
+              values: ['high', 'mid', 'low']
