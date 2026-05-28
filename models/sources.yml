@@ -22,3 +22,23 @@ sources:
       - name: social_comment_cache
         description: "Centralized cache table of normalized comments across YouTube, Instagram, and Facebook."
         freshness: null
+      
+      - name: raw_yt_traffic_sources
+        description: >
+          YouTube Analytics traffic source breakdown per video per day.
+          Shows where views came from (SHORTS, YT_SEARCH, SUBSCRIBER, etc.).
+          YouTube-only — no platform column. Refreshed 3x daily via cron.
+        loaded_at_field: fetched_at
+        freshness:
+          warn_after: {count: 25, period: hour}
+          error_after: {count: 48, period: hour}
+
+      - name: raw_yt_video_retention
+        description: >
+          YouTube Analytics retention metrics per video per day.
+          Includes averageViewPercentage (>100 means looping), averageViewDuration,
+          and subscribersGained. Refreshed 3x daily via cron.
+        loaded_at_field: fetched_at
+        freshness:
+          warn_after: {count: 25, period: hour}
+          error_after: {count: 48, period: hour}
