@@ -271,3 +271,60 @@ models:
         tests:
           - accepted_values:
               values: ['high', 'mid', 'low']
+
+  - name: fct_video_lifecycle
+    description: >
+      One row per video per day since publish. Shows daily view counts
+      alongside retention tier and discovery label for lifecycle analysis.
+      Source: fct_video_daily_deltas joined with publish dates and performance summary.
+
+    columns:
+      - name: video_id
+        description: YouTube video identifier.
+        tests:
+          - not_null
+
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests:
+          - not_null
+
+      - name: days_since_publish
+        description: Number of days elapsed since planned_publish_at. Day 0 = publish day.
+        tests:
+          - not_null
+
+      - name: daily_views
+        description: Incremental views on this day (from fct_video_daily_deltas).
+
+      - name: publish_date
+        description: Video publish date (from planned_publish_at).
+
+      - name: generated_title
+        description: AI-generated title of the video.
+
+      - name: brand_id
+        description: Brand identifier.
+        tests:
+          - not_null
+
+      - name: avg_retention_pct
+        description: Average retention percentage across the video's full history (from fct_video_performance_summary).
+
+      - name: retention_tier
+        description: Retention quality tier (high / mid / low).
+        tests:
+          - accepted_values:
+              values: ['high', 'mid', 'low']
+
+      - name: discovery_label
+        description: Traffic source classification (algorithm_driven / demand_driven / mixed).
+        tests:
+          - accepted_values:
+              values: ['algorithm_driven', 'demand_driven', 'mixed']
+
+      - name: video_total_views
+        description: Total lifetime views for this video (from fct_video_performance_summary).
+
+
+
