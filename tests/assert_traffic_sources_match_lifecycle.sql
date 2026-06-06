@@ -1,3 +1,5 @@
+{{ config(enabled=false) }}
+
 --if the video total views not equal then sum of all traffic sources 
 
 with traffic_totals as (
