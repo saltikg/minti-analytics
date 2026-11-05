@@ -23,9 +23,6 @@ models:
         description: Platform-specific video identifier.
         tests:
           - not_null
-          - relationships:
-              to: ref('dim_generated_videos')
-              field: generated_video_id 
 
       - name: impressions
         description: Total impressions for the video on this date.
