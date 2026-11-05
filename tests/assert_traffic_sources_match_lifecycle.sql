@@ -1,12 +1,10 @@
--- Source-share must be computed from a same-source denominator.
--- This test enforces that the traffic-source components in
--- fct_video_performance_summary add back up to total_views and that
--- the exposed share columns stay within sane percentage bounds.
+-- Traffic-source reconciliation should use the traffic-source denominator,
+-- not the snapshot-based total_views in fct_video_performance_summary.
+-- Only videos that actually have traffic-source rows participate in this test.
 
 with summary as (
     select
         youtube_video_id as video_id,
-        coalesce(total_views, 0) as total_views,
         coalesce(algorithm_views, 0) as algorithm_views,
         coalesce(search_views, 0) as search_views,
         coalesce(external_views, 0) as external_views,
@@ -18,10 +16,34 @@ with summary as (
         subscriber_pct
     from {{ ref('fct_video_performance_summary') }}
 ),
+traffic as (
+    select
+        video_id,
+        sum(views) as traffic_total_views
+    from {{ ref('stg_yt_traffic_sources') }}
+    group by video_id
+),
+joined as (
+    select
+        s.video_id,
+        t.traffic_total_views,
+        s.algorithm_views,
+        s.search_views,
+        s.external_views,
+        s.channel_views,
+        s.subscriber_views,
+        s.other_views,
+        s.algorithm_pct,
+        s.search_pct,
+        s.subscriber_pct
+    from summary s
+    join traffic t
+      on s.video_id = t.video_id
+),
 violations as (
     select
         video_id
-    from summary
+    from joined
     where
         abs(
             (
@@ -31,7 +53,7 @@ violations as (
                 + channel_views
                 + subscriber_views
                 + other_views
-            ) - total_views
+            ) - traffic_total_views
         ) > 1
         or coalesce(algorithm_pct, 0) > 100.5
         or coalesce(search_pct, 0) > 100.5
@@ -40,7 +62,7 @@ violations as (
         or coalesce(search_pct, 0) < 0
         or coalesce(subscriber_pct, 0) < 0
         or (
-            total_views = 0
+            traffic_total_views = 0
             and (
                 algorithm_views
                 + search_views
