@@ -12,7 +12,10 @@ with source_data as (
         channel_type,
         video_id,
         impressions,
-        views,
+        case
+            when channel_type = 'instagram' then coalesce(views, impressions)
+            else views
+        end as views,
         comments,
         likes,
         shares,
@@ -43,7 +46,7 @@ enriched as (
         saved,
         stats_source,
         case
-            when channel_type = 'instagram' then reach
+            when channel_type = 'instagram' then coalesce(views, impressions)
             when channel_type = 'youtube' then views
             else views
         end as primary_exposure,
