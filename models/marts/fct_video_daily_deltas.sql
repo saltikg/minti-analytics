@@ -9,7 +9,10 @@ with base as (
         brand_id,
         channel_type,
         video_id,
-        views,
+        case
+            when channel_type = 'instagram' then coalesce(views, impressions)
+            else views
+        end as views,
         likes,
         comments,
         shares,
@@ -21,7 +24,12 @@ with base as (
             order by snapshot_date
         ) as rn,
 
-        lag(views) over (
+        lag(
+            case
+                when channel_type = 'instagram' then coalesce(views, impressions)
+                else views
+            end
+        ) over (
             partition by brand_id, channel_type, video_id
             order by snapshot_date
         ) as prev_views,
