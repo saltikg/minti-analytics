@@ -1,6 +1,39 @@
 version: 2
 
 models:
+  - name: fct_short_daily_gains
+    description: >
+      Canonical PT-day performance mart at generated Short, platform, and date grain.
+      Instagram views use views with a legacy impressions fallback and never use reach.
+      Missing metrics and invalid baselines remain NULL and are described by completeness_status.
+    columns:
+      - name: metric_date
+        tests: [not_null]
+      - name: brand_id
+        tests: [not_null]
+      - name: generated_video_id
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['youtube', 'instagram', 'facebook']
+      - name: platform_video_id
+        tests: [not_null]
+      - name: canonical_publish_date
+        tests: [not_null]
+      - name: completeness_status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['complete', 'partial', 'pending']
+      - name: views_gain
+        description: Non-negative daily views gain; NULL when the metric or baseline is unavailable.
+      - name: likes_gain
+        description: Non-negative daily likes gain; NULL when the metric or baseline is unavailable.
+      - name: comments_gain
+        description: Non-negative daily comments gain; NULL when the metric or baseline is unavailable.
+
   - name: fct_video_daily_metrics
     description: Daily performance metrics per video, per platform. One row per video per snapshot date.
     

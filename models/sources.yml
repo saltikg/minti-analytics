@@ -19,6 +19,10 @@ sources:
         description: "Generated short-video records with production/pipeline outputs and core metadata."
         freshness: null
 
+      - name: shorts_instagram_queue
+        description: "Instagram publication queue used for media permalinks."
+        freshness: null
+
       - name: social_comment_cache
         description: "Centralized cache table of normalized comments across YouTube, Instagram, and Facebook."
         freshness: null
