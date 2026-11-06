@@ -192,6 +192,13 @@ observed_gains as (
 
     select
         *,
+        concat_ws(
+            '|',
+            brand_id,
+            generated_video_id::text,
+            platform,
+            metric_date::text
+        ) as series_date_key,
         case
             when series_row_number = 1 and platform_publish_date >= collection_start_date
                 then 'zero_at_publication'
@@ -250,7 +257,14 @@ date_spine as (
 
     select
         p.*,
-        generated_date::date as metric_date
+        generated_date::date as metric_date,
+        concat_ws(
+            '|',
+            p.brand_id,
+            p.generated_video_id::text,
+            p.platform,
+            generated_date::date::text
+        ) as series_date_key
     from platform_bounds p
     cross join lateral generate_series(
         p.platform_publish_date::timestamp,
@@ -317,10 +331,7 @@ select
     o.effective_at
 from date_spine d
 left join observed_gains o
-  on o.brand_id = d.brand_id
- and o.generated_video_id = d.generated_video_id
- and o.platform = d.platform
- and o.metric_date = d.metric_date
+  on o.series_date_key = d.series_date_key
 left join instagram_links i
   on i.brand_id = d.brand_id
  and i.instagram_media_id = d.instagram_media_id
