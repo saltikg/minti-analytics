@@ -1,6 +1,27 @@
 version: 2
 
 models:
+  - name: fct_brand_youtube_content_type_daily
+    description: >
+      Channel-wide YouTube views at brand and Pacific-date grain, split into
+      Shorts, video-on-demand, and livestream content. Missing types on an
+      observed day are zero; missing days remain absent/pending.
+    columns:
+      - name: brand_id
+        tests: [not_null]
+      - name: owner_user_id
+        tests: [not_null]
+      - name: channel_id
+        tests: [not_null]
+      - name: metric_date
+        tests: [not_null]
+      - name: shorts_views
+        tests: [not_null]
+      - name: vod_views
+        tests: [not_null]
+      - name: live_views
+        tests: [not_null]
+
   - name: fct_short_youtube_insights_daily
     description: >
       Daily YouTube Analytics metrics at generated Short and PT reporting-date grain.

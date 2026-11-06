@@ -46,3 +46,12 @@ sources:
         freshness:
           warn_after: {count: 25, period: hour}
           error_after: {count: 48, period: hour}
+
+      - name: raw_yt_channel_content_type_daily
+        description: >
+          Channel-wide YouTube Analytics views by PT day and creator content type.
+          Refreshed 3x daily through the existing YouTube Analytics cron.
+        loaded_at_field: fetched_at
+        freshness:
+          warn_after: {count: 25, period: hour}
+          error_after: {count: 48, period: hour}
