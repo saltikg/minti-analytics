@@ -137,7 +137,6 @@ collection_bounds as (
     select
         brand_id,
         platform,
-        min(metric_date) as collection_start_date,
         max(metric_date) as collection_end_date
     from snapshots
     group by brand_id, platform
@@ -154,8 +153,14 @@ mapped_snapshots as (
         s.lifetime_likes,
         s.lifetime_comments,
         s.stats_source,
-        b.collection_start_date,
         b.collection_end_date,
+        concat_ws(
+            '|',
+            p.brand_id,
+            p.generated_video_id::text,
+            p.platform,
+            s.metric_date::text
+        ) as series_date_key,
         ((p.platform_published_at at time zone 'UTC') at time zone 'America/Los_Angeles')::date
             as platform_publish_date,
         ((p.canonical_published_at at time zone 'UTC') at time zone 'America/Los_Angeles')::date
@@ -171,16 +176,70 @@ mapped_snapshots as (
 
 ),
 
-ordered_snapshots as (
+eligible_snapshots as (
+
+    select *
+    from mapped_snapshots
+    where metric_date >= platform_publish_date
+
+),
+
+observation_groups as (
 
     select
         *,
-        lag(metric_date) over series_order as previous_metric_date,
-        lag(lifetime_views) over series_order as previous_lifetime_views,
-        lag(lifetime_likes) over series_order as previous_lifetime_likes,
-        lag(lifetime_comments) over series_order as previous_lifetime_comments,
-        row_number() over series_order as series_row_number
-    from mapped_snapshots
+        count(lifetime_views) over series_order as views_observation_group,
+        count(lifetime_likes) over series_order as likes_observation_group,
+        count(lifetime_comments) over series_order as comments_observation_group,
+        max(metric_date) filter (
+            where lifetime_views is not null
+        ) over previous_rows as previous_views_metric_date,
+        max(metric_date) filter (
+            where lifetime_likes is not null
+        ) over previous_rows as previous_likes_metric_date,
+        max(metric_date) filter (
+            where lifetime_comments is not null
+        ) over previous_rows as previous_comments_metric_date
+    from eligible_snapshots
+    window
+        series_order as (
+            partition by brand_id, generated_video_id, platform
+            order by metric_date
+            rows between unbounded preceding and current row
+        ),
+        previous_rows as (
+            partition by brand_id, generated_video_id, platform
+            order by metric_date
+            rows between unbounded preceding and 1 preceding
+        )
+
+),
+
+carried_observations as (
+
+    select
+        *,
+        max(lifetime_views) over (
+            partition by brand_id, generated_video_id, platform, views_observation_group
+        ) as carried_lifetime_views,
+        max(lifetime_likes) over (
+            partition by brand_id, generated_video_id, platform, likes_observation_group
+        ) as carried_lifetime_likes,
+        max(lifetime_comments) over (
+            partition by brand_id, generated_video_id, platform, comments_observation_group
+        ) as carried_lifetime_comments
+    from observation_groups
+
+),
+
+ordered_observations as (
+
+    select
+        *,
+        lag(carried_lifetime_views) over series_order as previous_lifetime_views,
+        lag(carried_lifetime_likes) over series_order as previous_lifetime_likes,
+        lag(carried_lifetime_comments) over series_order as previous_lifetime_comments
+    from carried_observations
     window series_order as (
         partition by brand_id, generated_video_id, platform
         order by metric_date
@@ -192,45 +251,34 @@ observed_gains as (
 
     select
         *,
-        concat_ws(
-            '|',
-            brand_id,
-            generated_video_id::text,
-            platform,
-            metric_date::text
-        ) as series_date_key,
         case
-            when series_row_number = 1 and platform_publish_date >= collection_start_date
+            when lifetime_views is not null and previous_views_metric_date is null
                 then 'zero_at_publication'
-            when previous_metric_date is not null
+            when previous_views_metric_date is not null
+                then 'previous_snapshot'
+            when lifetime_likes is not null and previous_likes_metric_date is null
+                then 'zero_at_publication'
+            when previous_likes_metric_date is not null
+                then 'previous_snapshot'
+            when lifetime_comments is not null and previous_comments_metric_date is null
+                then 'zero_at_publication'
+            when previous_comments_metric_date is not null
                 then 'previous_snapshot'
             else 'missing'
         end as baseline_kind,
         case
             when lifetime_views is null then null
-            when previous_lifetime_views is not null
-                then greatest(lifetime_views - previous_lifetime_views, 0)
-            when series_row_number = 1 and platform_publish_date >= collection_start_date
-                then greatest(lifetime_views, 0)
-            else null
+            else greatest(lifetime_views - coalesce(previous_lifetime_views, 0), 0)
         end as views_gain,
         case
             when lifetime_likes is null then null
-            when previous_lifetime_likes is not null
-                then greatest(lifetime_likes - previous_lifetime_likes, 0)
-            when series_row_number = 1 and platform_publish_date >= collection_start_date
-                then greatest(lifetime_likes, 0)
-            else null
+            else greatest(lifetime_likes - coalesce(previous_lifetime_likes, 0), 0)
         end as likes_gain,
         case
             when lifetime_comments is null then null
-            when previous_lifetime_comments is not null
-                then greatest(lifetime_comments - previous_lifetime_comments, 0)
-            when series_row_number = 1 and platform_publish_date >= collection_start_date
-                then greatest(lifetime_comments, 0)
-            else null
+            else greatest(lifetime_comments - coalesce(previous_lifetime_comments, 0), 0)
         end as comments_gain
-    from ordered_snapshots
+    from ordered_observations
 
 ),
 
@@ -238,7 +286,6 @@ platform_bounds as (
 
     select
         p.*,
-        b.collection_start_date,
         b.collection_end_date,
         ((p.platform_published_at at time zone 'UTC') at time zone 'America/Los_Angeles')::date
             as platform_publish_date,
@@ -322,8 +369,25 @@ select
         when o.views_gain is null
           or o.likes_gain is null
           or o.comments_gain is null then 'partial'
-        when o.previous_metric_date is not null
-         and o.previous_metric_date <> o.metric_date - 1 then 'partial'
+        when (
+            o.previous_views_metric_date is null
+            and o.metric_date > o.platform_publish_date + 1
+        ) or (
+            o.previous_views_metric_date is not null
+            and o.previous_views_metric_date <> o.metric_date - 1
+        ) or (
+            o.previous_likes_metric_date is null
+            and o.metric_date > o.platform_publish_date + 1
+        ) or (
+            o.previous_likes_metric_date is not null
+            and o.previous_likes_metric_date <> o.metric_date - 1
+        ) or (
+            o.previous_comments_metric_date is null
+            and o.metric_date > o.platform_publish_date + 1
+        ) or (
+            o.previous_comments_metric_date is not null
+            and o.previous_comments_metric_date <> o.metric_date - 1
+        ) then 'partial'
         else 'complete'
     end as completeness_status,
     (o.metric_date is not null) as has_snapshot,
