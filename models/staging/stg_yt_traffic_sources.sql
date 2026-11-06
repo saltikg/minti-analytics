@@ -1,6 +1,9 @@
 select
     snapshot_date,
     video_id,
+    generated_video_id,
+    owner_user_id,
+    brand_id,
     traffic_source_type,
     views,
     fetched_at,

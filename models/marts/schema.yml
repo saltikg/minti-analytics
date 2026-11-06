@@ -1,6 +1,28 @@
 version: 2
 
 models:
+  - name: fct_short_youtube_insights_daily
+    description: >
+      Daily YouTube Analytics metrics at generated Short and PT reporting-date grain.
+      Traffic-source views remain distinct from Analytics views so attribution coverage
+      can be reported. Missing Analytics metrics remain NULL.
+    columns:
+      - name: metric_date
+        tests: [not_null]
+      - name: generated_video_id
+        tests: [not_null]
+      - name: owner_user_id
+        tests: [not_null]
+      - name: brand_id
+        tests: [not_null]
+      - name: youtube_video_id
+        tests: [not_null]
+      - name: completeness_status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['complete', 'partial', 'pending']
+
   - name: fct_short_daily_gains
     description: >
       Canonical PT-day performance mart at generated Short, platform, and date grain.
@@ -218,7 +240,8 @@ models:
   - name: fct_video_performance_summary
     description: >
       One row per published YouTube video. Aggregates traffic source breakdown,
-      retention metrics, and subscriber gains across the video's full history.
+      view-weighted retention metrics (excluding days with 5 or fewer views), and
+      subscriber gains across the video's full history.
       Used for video performance analysis and content strategy dashboard.
 
     columns:
@@ -282,11 +305,11 @@ models:
 
       - name: avg_retention_pct
         description: >
-          Average percentage of the video watched per view across all days.
+          Views-weighted average percentage watched across days with more than 5 views.
           Values above 100 indicate looping behavior.
 
       - name: avg_duration_sec
-        description: Average view duration in seconds across all days.
+        description: Views-weighted average view duration across days with more than 5 views.
 
       - name: total_subs_gained
         description: Total subscribers gained attributed to this video.

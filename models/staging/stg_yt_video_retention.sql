@@ -1,6 +1,9 @@
 select
     snapshot_date,
     video_id,
+    generated_video_id,
+    owner_user_id,
+    brand_id,
     views,
     average_view_duration_seconds,
     average_view_percentage,

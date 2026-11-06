@@ -49,8 +49,28 @@ retention as (
 
     select
         video_id,
-        round(avg(average_view_percentage)::numeric, 1)       as avg_retention_pct,
-        round(avg(average_view_duration_seconds)::numeric, 1) as avg_duration_sec,
+        round(
+            (
+                sum(average_view_percentage * views) filter (
+                    where views > 5 and average_view_percentage is not null
+                )
+                / nullif(sum(views) filter (
+                    where views > 5 and average_view_percentage is not null
+                ), 0)
+            )::numeric,
+            1
+        ) as avg_retention_pct,
+        round(
+            (
+                sum(average_view_duration_seconds * views) filter (
+                    where views > 5 and average_view_duration_seconds is not null
+                )
+                / nullif(sum(views) filter (
+                    where views > 5 and average_view_duration_seconds is not null
+                ), 0)
+            )::numeric,
+            1
+        ) as avg_duration_sec,
         sum(subscribers_gained)                               as total_subs_gained,
         bool_or(is_loop_video)                                as ever_looped
     from {{ ref('stg_yt_video_retention') }}
